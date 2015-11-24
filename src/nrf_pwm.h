@@ -1,4 +1,4 @@
-// Unfortunatly, there is no pwm-related hal file in the nrf52 SDK
+// Unfortunatly, there is no pwm-related hal file in the nrf52 SDK yet
 // so we make our own
 
 #pragma once
@@ -20,7 +20,7 @@
 typedef enum
 {
     /*lint -save -e30 -esym(628,__INTADDR__)*/
-    // NRF_PWM_TASK_START    = offsetof(NRF_PWM_Type, TASKS_START),  /* Missing in the datasheet ??*/
+    // NRF_PWM_TASK_START    = offsetof(NRF_PWM_Type, TASKS_START),
     NRF_PWM_TASK_STOP     = offsetof(NRF_PWM_Type, TASKS_STOP),
     NRF_PWM_TASK_SEQSTART0 = offsetof(NRF_PWM_Type, TASKS_SEQSTART[0]),
     NRF_PWM_TASK_SEQSTART1 = offsetof(NRF_PWM_Type, TASKS_SEQSTART[1]),

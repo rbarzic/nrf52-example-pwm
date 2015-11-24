@@ -1,4 +1,7 @@
-// Simple RTC code that will toggle a pin every second
+// Simple PWM code that will output a 1MHz PWM signal with a
+// 50% duty cycle on pin 19
+// Note : you must have a PCA10040 board
+// This will not run on a PCA10036 board
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -67,11 +70,7 @@ void dbg_pwm_registers(NRF_PWM_Type * NRF_PWMx) {
 int main(void)
 {
 
-    nrf_gpio_cfg_output(PIN_LED3);
-    nrf_gpio_pin_set(PIN_LED3); // LED is off
 
-    nrf_gpio_cfg_output(PIN_LED4);
-    nrf_gpio_pin_set(PIN_LED4); // LED is off
 
 
     uint32_t err_code;
@@ -98,58 +97,40 @@ int main(void)
 
     printf("Hello world !! (%s)\n",__DATE__);
 
+#define PWM_COUNTER_TOP 16000 // 16MHz divided by 16000-> 1ms
+#define PWM_DUTY_CYCLE  50
+#define PWM_CH0_DUTY ((uint16_t) ((PWM_COUNTER_TOP*PWM_DUTY_CYCLE)/100))
 
-
-
-
-#define PWM_COUNTER_TOP ((uint16_t)16000) // 1ms
-#define PWM_CH0_DUTY ((uint16_t)8000) // 50%
-#define PWM_CH1_DUTY ((uint16_t)16000) // 100%
-    if(0) { // From datasheet
-        uint16_t pwm_seq[2] = {PWM_CH0_DUTY, PWM_CH1_DUTY};
-NRF_PWM0->PSEL.OUT[0] = ( PIN_LED3 << PWM_PSEL_OUT_PIN_Pos) |
-                        (PWM_PSEL_OUT_CONNECT_Connected <<
-                                                 PWM_PSEL_OUT_CONNECT_Pos);
-NRF_PWM0->PSEL.OUT[1] = (PIN_LED4  << PWM_PSEL_OUT_PIN_Pos) |
-                        (PWM_PSEL_OUT_CONNECT_Connected <<
-                                                 PWM_PSEL_OUT_CONNECT_Pos);
-NRF_PWM0->ENABLE      = (PWM_ENABLE_ENABLE_Enabled << PWM_ENABLE_ENABLE_Pos);
-NRF_PWM0->MODE        = (PWM_MODE_UPDOWN_Up << PWM_MODE_UPDOWN_Pos);
-NRF_PWM0->PRESCALER   = (PWM_PRESCALER_PRESCALER_DIV_1 <<
-                                                 PWM_PRESCALER_PRESCALER_Pos);
-NRF_PWM0->COUNTERTOP  = (16000 << PWM_COUNTERTOP_COUNTERTOP_Pos); //1 msec
-NRF_PWM0->LOOP        = (PWM_LOOP_CNT_Disabled << PWM_LOOP_CNT_Pos);
-NRF_PWM0->DECODER   = (PWM_DECODER_LOAD_Individual << PWM_DECODER_LOAD_Pos) |
-                      (PWM_DECODER_MODE_RefreshCount << PWM_DECODER_MODE_Pos);
-NRF_PWM0->SEQ[0].PTR  = ((uint32_t)(pwm_seq) << PWM_SEQ_PTR_PTR_Pos);
-NRF_PWM0->SEQ[0].CNT  = ((sizeof(pwm_seq) / sizeof(uint16_t)) <<
-                                                 PWM_SEQ_CNT_CNT_Pos);
-NRF_PWM0->SEQ[0].REFRESH  = 0;
-NRF_PWM0->SEQ[0].ENDDELAY = 0;
-NRF_PWM0->TASKS_SEQSTART[0] = 1;
-
-
-
-    }
 
     if (1){
-        uint16_t pwm_seq[2] = {PWM_CH0_DUTY, PWM_CH1_DUTY};
+        uint16_t pwm_seq = PWM_CH0_DUTY;
+
+        nrf_gpio_cfg_output(PIN_LED3);
+        nrf_gpio_pin_set(PIN_LED3); // LED is off
+
+        nrf_gpio_cfg_output(PIN_LED4);
+        nrf_gpio_pin_set(PIN_LED4); // LED is off
 
         nrf_pwm_pselout_set(NRF_PWM0, NRF_PWM_CHANNEL0, PIN_LED3);
-        nrf_pwm_pselout_set(NRF_PWM0, NRF_PWM_CHANNEL1, PIN_LED4);
         nrf_pwm_enable(NRF_PWM0);
         nrf_pwm_mode_set(NRF_PWM0, NRF_PWM_MODE_UP);
         nrf_pwm_prescaler_set(NRF_PWM0, NRF_PWM_PRESCALER_DIV_1);
         nrf_pwm_countertop_set(NRF_PWM0, PWM_COUNTER_TOP);
         nrf_pwm_loop_set(NRF_PWM0, 0); // disabled
         nrf_pwm_decoder_set(NRF_PWM0,
-                            NRF_PWM_DECODER_LOAD_INDIVIDUAL,
+                            NRF_PWM_DECODER_LOAD_COMMON, /* Same value for each channel */
                             NRF_PWM_DECODER_MODE_REFRESHCOUNT);
 
-        nrf_pwm_seq_set(NRF_PWM0, NRF_PWM_SEQUENCE0, (uint32_t)pwm_seq,
-                        ((sizeof(pwm_seq))/sizeof(uint16_t)), 0, 0);
+        nrf_pwm_seq_set(NRF_PWM0, NRF_PWM_SEQUENCE0, (uint32_t)&pwm_seq,
+                        1, /* Count */
+                        1, /* Refresh */
+                        0);
         nrf_pwm_task_trigger(NRF_PWM0, NRF_PWM_TASK_SEQSTART0);
+
     }
+
+
+
     dbg_pwm_registers(NRF_PWM0);
     while(1);
 }
